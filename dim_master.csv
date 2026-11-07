@@ -1,0 +1,32 @@
+asset_class,asset_key,ticker,asset_name,country_iso2
+index,DE0007203275,TECDAX.INDX,TecDAX Technology Performance Index (Germany),DE
+index,ES0SI0000005,IBEX.INDX,IBEX 35 Benchmark Index (Spain),ES
+index,FR0003500008,FCHI.INDX,CAC 40 Index (Paris France),FR
+index,PL9999999987,WIG20.INDX,WIG20 Index (Warsaw Poland),PL
+index,US6311011026,IXIC.INDX,NASDAQ Composite Index (US),US
+index,US6311011026,NDX.INDX,NASDAQ 100 Benchmark Index (US),US
+index,EU0009658202,SXXP.INDX,STOXX Europe 600 Benchmark Index,EU
+index,HU0000060012,BUX.INDX,Budapest Stock Index (BUX Hungary),HU
+index,US12484X1063,VIX.INDX,CBOE Volatility Index (VIX),US
+index,DE0008469008,GDAXI.INDX,DAX 40 Performance Index (Germany),DE
+index,IN9002000011,BSESN.INDX,BSE Sensex Index (India),IN
+index,INE000A01010,NSEI.INDX,NIFTY 50 Benchmark Index (India),IN
+index,EU0009658145,STOXX50E.INDX,EURO STOXX 50 Benchmark Index (Europe),EU
+index,FI0008900212,OMXH25.INDX,OMX Helsinki 25 Index (Finland),FI
+index,SE0000337842,OMXS30.INDX,OMX Stockholm 30 Index (Sweden),SE
+index,US2605661048,DJI.INDX,Dow Jones Industrial Average (US),US
+index,DE0008467416,MDAXI.INDX,MDAX Mid-Cap Performance Index (Germany),DE
+index,US78378X1072,GSPC.INDX,S&P 500 Benchmark Index (US),US
+index,JP9010700008,N225.INDX,Nikkei 225 Stock Average (Japan),JP
+index,NL0000000107,AEX.INDX,AEX Index (Amsterdam Netherlands),NL
+index,AT0000999982,ATX.INDX,Austrian Traded Index (ATX Vienna),AT
+index,DE0009653386,SDAXI.INDX,SDAX Small-Cap Performance Index (Germany),DE
+index,TW0009999995,TWII.INDX,Taiwan Capitalization Weighted Stock Index (TAIEX),TW
+index,BE0389555039,BEL20.INDX,BEL 20 Index (Brussels Belgium),BE
+index,HK0000004322,HSI.INDX,Hang Seng Benchmark Index (Hong Kong),HK
+index,JP9010800006,TOPX.INDX,Tokyo Price Index (TOPIX Japan),JP
+index,KR7000000001,KS11.INDX,KOSPI Composite Index (South Korea),KR
+index,XC0009698371,PX.INDX,PX Index (Prague Czech Republic),CZ
+index,GB0001383545,BUK100P.INDX,Cboe UK 100 Benchmark Index (UK),GB
+index,CH0009980894,SSMI.INDX,Swiss Market Index (SMI Switzerland),CH
+index,AU0000000009,AXJO.INDX,S&P/ASX 200 Benchmark Index (Australia),AU

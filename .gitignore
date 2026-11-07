@@ -1,0 +1,36 @@
+# Byte-compiled / cache / pytest
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# OS & Office temporary lock files
+~$*
+.DS_Store
+Thumbs.db
+
+# DuckDB temporary write-ahead logs
+data/*.wal
+data/*.tmp
+
+# Case study prompt & local helper/study files (kept locally on disk, excluded from repo)
+risk-analytics & data - case study.html
+make_presentation.py
+make_english_presentation.py
+build_html_presentation.py
+generate_eda_notebook.py
+README_ES.md
+tool_use_note_ES.md
+presentation_slides.md
+presentation.html
+presentation_en.html
+FlatexDEGIRO_Risk_Analytics_Presentation.pptx
+figures/01_correlation_diff_heatmap.png
+figures/02_regional_correlation_shift.png
+figures/05_timezone_lag_effect.png
+figures/06_fx_pnl_distribution.png
+figures/07_fx_backtest_kupiec_christoffersen.png
