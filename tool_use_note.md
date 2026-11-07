@@ -20,10 +20,10 @@ In accordance with the case study guidelines (*"Modern tools are welcome. Unders
 
 * **Modular Architecture & Boilerplate Acceleration**:
   Structuring the clean separation of concerns across `src/config.py`, `src/ecb_client.py`, `src/validator.py`, `src/database.py`, `src/risk_engine.py`, and `src/index_analysis.py`, alongside CLI interfaces (`argparse`) and structured logging.
-* **Forensic Data Inspection (Task 2)**:
+* **Exploratory Data Inspection (Task 2)**:
   Rapid programmatic profiling of `dim_master.csv` and `price_hist.parquet`, which immediately surfaced the $4,674$ duplicate dates caused by the shared `US6311011026` key (`IXIC.INDX` vs. `NDX.INDX`).
 * **Dashboard Layout & Visual Polish**:
-  Drafting the Streamlit custom CSS for executive KPI cards, interactive Plotly charts (5-day P&L distribution with VaR/ES/TWAP cutoffs and rolling backtest charts), and the high-resolution figures in `figures/`.
+  Drafting the Streamlit custom CSS for key indicator cards, interactive Plotly charts (5-day P&L distribution with VaR/ES/TWAP cutoffs and rolling backtest charts), and the high-resolution figures in `figures/`.
 * **Quantitative Challenger Review**:
   Stress-testing theoretical assumptions, including the mechanical $\text{MA}(4)$ serial dependence introduced by overlapping 5-day returns in Christoffersen's Independence test and the heteroskedasticity conditioning bias of Forbes & Rigobon (2002).
 

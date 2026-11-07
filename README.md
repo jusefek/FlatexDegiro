@@ -5,7 +5,7 @@ End-to-end, reproducible, and quantitatively validated solution for the **Risk D
 This repository delivers:
 1. **Task 1a (`etl_ecb.py`)**: A resilient, idempotent Python ETL pipeline ingesting daily ECB USD/EUR reference rates (`EXR.D.USD.EUR.SP00.A`) via the official SDMX RESTful API into a local analytical **DuckDB** database (`data/market_data.duckdb`).
 2. **Task 1b (`dashboard.py` & `src/risk_engine.py`)**: An interactive **Daily FX-Risk Dashboard** in Streamlit for the Management Board, featuring exact non-linear **Full Repricing ($1/S$)** over a 5-business-day horizon, **Through-the-Cycle (TTC)** vs. **Point-in-Time (PiT / EWMA $\lambda=0.94$)** VaR & Expected Shortfall, **Critical Trigger Rate ($S_{\text{VaR}}$)**, **5-Day TWAP Execution**, **5-Day FX Outright Forward Hedge Benchmark**, and **Kupiec POF + Christoffersen Backtesting** across both overlapping and non-overlapping 5-day blocks.
-3. **Task 2 (`analysis_indices.py`, `src/index_analysis.py` & `EDA_Risk_and_Index_Analysis.ipynb`)**: A forensic 18-year econometric study across 31 global indices (`2008–2026`), resolving the `US6311011026` (`IXIC` vs. `NDX`) key collision and proving **Correlation Breakdown ($+43.8\%$ surge during $\text{VIX} \ge 30$)**, **Forbes & Rigobon (2002)** asymmetric lower-tail contagion, and the **Asian Timezone Asynchrony ($t+1$) effect**.
+3. **Task 2 (`analysis_indices.py`, `src/index_analysis.py` & `EDA_Risk_and_Index_Analysis.ipynb`)**: A detailed 18-year econometric study across 31 global indices (`2008–2026`), resolving the `US6311011026` (`IXIC` vs. `NDX`) key collision and proving **Correlation Breakdown ($+43.8\%$ surge during $\text{VIX} \ge 30$)**, **Forbes & Rigobon (2002)** asymmetric lower-tail contagion, and the **Asian Timezone Asynchrony ($t+1$) effect**.
 
 ---
 
@@ -37,12 +37,12 @@ FlatexDegiro/
 │   └── test_indices.py                              # Index deduplication, returns & correlation matrix tests (5 tests)
 ├── EDA_Risk_and_Index_Analysis.ipynb                # Interactive Jupyter Notebook (Step-by-step EDA with inline plots)
 ├── etl_ecb.py                                       # CLI entry point for Task 1a (ECB FX Data Ingestion)
-├── dashboard.py                                     # Streamlit Executive Dashboard for Task 1b (Management Board)
+├── dashboard.py                                     # Streamlit Risk Dashboard for Task 1b (Management Board)
 ├── analysis_indices.py                              # CLI entry point for Task 2 (Global Index Analysis)
 ├── dim_master.csv                                   # Master metadata for the 31 global indices (Task 2)
 ├── price_hist.parquet                               # Historical daily prices 2008–2026 (143,211 rows, Task 2)
-├── FlatexDEGIRO_Risk_Analytics_Presentation_EN.pptx # Executive Slide Deck (16:9 PowerPoint with Speaker Notes)
-├── presentation_slides_en.md                        # Markdown version of the Executive Presentation & Script
+├── FlatexDEGIRO_Risk_Analytics_Presentation_EN.pptx # Presentation Slide Deck (16:9 PowerPoint with Speaker Notes)
+├── presentation_slides_en.md                        # Markdown version of the Presentation Deck & Script
 ├── tool_use_note.md                                 # Transparency & validation note on modern tools and AI usage
 ├── requirements.txt                                 # Reproducible Python dependencies
 └── README.md                                        # Project documentation and execution guide
@@ -110,13 +110,13 @@ python -m pytest tests/ -v
 * **Embedded Analytical Storage (DuckDB)**: Chosen over flat CSVs for ACID transactions, strict primary-key enforcement (`rate_date DATE PRIMARY KEY`), audit timestamps (`ingested_at`), and zero-configuration portability.
 * **Strict TARGET2 Convention (No Synthetic Imputation)**: We intentionally avoid forward-filling weekends or mixing Federal Reserve (NY 16:00 ET) rates with ECB fixings (14:15 CET). Artificial forward-filling injects zero-return days that bias empirical volatility downward.
 
-### 4.2 Task 1b — 5-Day FX Risk Engine & Executive Benchmarks ($100,000\text{ USD}$)
+### 4.2 Task 1b — 5-Day FX Risk Engine & Decision Benchmarks ($100,000\text{ USD}$)
 * **Indirect Quotation & Full Repricing ($1/S$)**:
   Because the ECB quotes $S = \text{USD/EUR}$ (USD per 1 EUR), the EUR value of $100,000\text{ USD}$ is $V_{\text{EUR}}(S) = \frac{100,000}{S}$. Losses occur when the USD depreciates ($S$ increases). We evaluate exact non-linear scenarios over empirical 5-business-day log-returns $r_{k,5d} = \ln(S_t / S_{t-5})$ without relying on $\sqrt{5}$ scaling:
   $$L^{(k)}_{5d} = V_0 - \frac{100,000}{S_0 \cdot \exp(r_{k, 5d})}$$
-* **Summary of Executive Risk & Hedging Metrics**:
+* **Summary of Key Risk & Hedging Metrics**:
 
-| Metric / Benchmark | Value (EUR / %) | Executive Interpretation |
+| Metric / Benchmark | Value (EUR / %) | Decision Impact / Interpretation |
 | :--- | :--- | :--- |
 | **Portfolio Mark-to-Market ($V_0$)** | **€89,158.35** | $100,000\text{ USD}$ valued at $S_0 = 1.1216\text{ USD/EUR}$ |
 | **99% 5-Day Historical VaR (TTC)** | **€2,513.33 (2.82%)** | Anti-cyclical 11-year historical simulation (3,025 scenarios) |
@@ -131,7 +131,7 @@ python -m pytest tests/ -v
   * **Non-Overlapping 5-Day Blocks (`step = 5`, $N = 505$)**: Neutralizes the mechanical $\text{MA}(4)$ serial correlation of overlapping 5-day windows, reducing consecutive clustered breaches ($n_{11}$) by **94.4% ($18 \rightarrow 1$)** while passing Kupiec POF with **$p = 0.3213$**.
 
 ### 4.3 Task 2 — Global Equity Index Analysis (2008–2026)
-1. **Forensic Resolution of `US6311011026` (`IXIC.INDX` vs. `NDX.INDX`)**:
+1. **Data Quality Resolution of `US6311011026` (`IXIC.INDX` vs. `NDX.INDX`)**:
    In `dim_master.csv`, both the *NASDAQ Composite* and *NASDAQ 100* shared `asset_key = US6311011026`, with rows interleaved in `price_hist.parquet`. We deterministically decoupled even rows (`IXIC.INDX`, ~2,609 in Jan 2008) from odd rows (`NDX.INDX`, ~2,049 in Jan 2008), preserving all 31 indices.
 2. **Empirical Proof of *Correlation Breakdown***:
    Across all 435 unique equity index pairs, mean pairwise correlation increases from **$0.4247$ in Calm ($\text{VIX} < 20$)** to **$0.6109$ in Distress ($\text{VIX} \ge 30$)** — a **$+43.8\%$ surge** ($\Delta \bar{\rho} = +0.1861$). Regional contagion is strongest between Core Europe and Eastern Europe (**$+63.8\%$**). We also demonstrate genuine **asymmetric lower-tail dependence** beyond the variance conditioning bias of **Forbes & Rigobon (2002)**.

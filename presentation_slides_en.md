@@ -1,10 +1,10 @@
-# Executive Presentation Deck (10–15 min) | From Market Data to Risk Insight
+# Market Risk & Analytics Presentation Deck (10–15 min) | From Market Data to Risk Insight
 **Role:** Risk Data Engineering & Analytics Expert — FlatexDEGIRO Case Study  
 **Structure:** 6 Slides (approx. 2 min per slide) + 3 min Q&A
 
 ---
 
-## Executive Presentation Overview
+## Presentation Overview & Timing Guide
 
 ```mermaid
 flowchart LR
@@ -60,7 +60,7 @@ flowchart LR
 
 ---
 
-## Slide 3: Executive Dashboard, Treasury Decisions & Model Validation (Task 1b)
+## Slide 3: Daily Risk Dashboard, Treasury Decisions & Model Validation (Task 1b)
 
 ### On-Slide Visual Content
 * **Risk Traffic Light:** 🟢 **GREEN** (Recent 21-day volatility at historical $17.2\text{th}$ percentile). Calm regime; standard operations.
@@ -86,7 +86,7 @@ flowchart LR
 ## Slide 4: Empirical Evidence of 'Correlation Breakdown' in Global Indices (Task 2)
 
 ### On-Slide Visual Content
-* **Forensic Data Audit:** Resolved a collision in `dim_master.csv` where key `US6311011026` duplicated the NASDAQ Composite (`IXIC`) and NASDAQ 100 (`NDX`), interleaved in the Parquet file. Decoupled into 31 clean assets across 4,895 trading dates.
+* **Data Quality Audit:** Resolved a collision in `dim_master.csv` where key `US6311011026` duplicated the NASDAQ Composite (`IXIC`) and NASDAQ 100 (`NDX`), interleaved in the Parquet file. Decoupled into 31 clean assets across 4,895 trading dates.
 * **Market Regimes (VIX):** Calm ($VIX < 20$, $61.6\%$ of sessions), Distress ($VIX \ge 30$, $9.2\%$), and Extreme Panic ($VIX \ge 40$, $3.7\%$).
 * **The 'Correlation Breakdown' Proof (+43.8% Surge):**
   * Mean global pairwise correlation in Calm: $\bar{\rho} = \mathbf{0.4247}$.
@@ -97,7 +97,7 @@ flowchart LR
 * **Forbes & Rigobon (2002) Perspective:** We acknowledge conditioning bias due to market variance expansion, while confirming true asymmetric lower tail dependence.
 
 ### Speaker Script (2 min)
-> *"Turning to Task 2, we conducted an empirical investigation spanning 18 years of market history (2008 to 2026). Before modeling, our forensic data audit identified that asset key US6311011026 duplicated both the NASDAQ Composite and NASDAQ 100, with alternating rows in the Parquet file. We cleanly decoupled them by verifying their historical price levels from 2008 through 2026.
+> *"Turning to Task 2, we conducted an empirical investigation spanning 18 years of market history (2008 to 2026). Before modeling, our initial data quality audit identified that asset key US6311011026 duplicated both the NASDAQ Composite and NASDAQ 100, with alternating rows in the Parquet file. We cleanly decoupled them by verifying their historical price levels from 2008 through 2026.
 >
 > Segmenting the history by VIX regimes reveals unmistakable proof of Correlation Breakdown: when VIX exceeds 30, average pairwise global correlation surges from 0.425 to 0.611 (+43.8%). Within US and Core European equities, correlations exceed 0.93, and Eastern Europe experiences a +64% contagion spike as international liquidity retreats.
 >

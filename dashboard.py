@@ -1,5 +1,5 @@
 """
-Daily FX-Risk Executive Dashboard (FlatexDEGIRO - Task 1b).
+Daily FX-Risk Dashboard (FlatexDEGIRO - Task 1b).
 Interactive Streamlit interface designed for the Management Board and Treasury desk.
 
 Includes:
@@ -35,7 +35,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Institutional CSS for dark theme executive layout
+# Custom CSS for dark theme layout
 st.markdown(
     """
     <style>
@@ -205,7 +205,7 @@ tl_info = TRAFFIC_LIGHT_MAP.get(
 # -----------------------------------------------------------------------------
 st.title("🛡️ Daily FX-Risk Dashboard | Bank Treasury")
 st.markdown(
-    f"**Executive Market Risk Report for the Management Board** | "
+    f"**Market Risk Overview for the Management Board** | "
     f"Official ECB Fixing: **{spot_ctx['spot_date']}** | "
     f"Active Exposure: **USD {usd_amount:,.2f}** to convert over **{horizon_days} business days**."
 )
@@ -230,7 +230,7 @@ st.markdown(
 
 
 # -----------------------------------------------------------------------------
-# Executive KPI Cards (6 Key Indicators for the Board)
+# Key Risk Indicators (6 Core Metrics)
 # -----------------------------------------------------------------------------
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -427,7 +427,7 @@ with tab1:
         st.dataframe(df_bench, hide_index=True, use_container_width=True)
 
         st.info(
-            f"💡 **Executive Takeaways for the Management Board:**\n"
+            f"💡 **Key Insights & Recommendations:**\n"
             f"- **Critical Trigger Rate (Stop-Loss Level):** If EUR/USD reaches **{hist_metrics['trigger_spot_var']:.4f}** "
             f"(+{hist_metrics['trigger_spot_move_pct']:.2f}%), the entire VaR budget (-€ {hist_metrics['var_eur']:,.0f}) is exhausted.\n"
             f"- **Operational Optimization (TWAP):** Converting **USD {twap_metrics['tranche_usd']:,.0f}/day** reduces VaR by "
@@ -614,7 +614,7 @@ with tab4:
 
     st.markdown(
         r"""
-        For executive interpretation by the **Management Board**, key modeling assumptions and regulatory alignments are detailed below:
+        For board-level review and risk governance, key modeling assumptions and regulatory alignments are detailed below:
 
         | Assumption / Dimension | Implementation in this Dashboard | Justification & Regulatory Alignment |
         | :--- | :--- | :--- |
