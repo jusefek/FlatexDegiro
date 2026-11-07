@@ -127,22 +127,23 @@ flowchart LR
 
 ---
 
-## Slide 6: What to Investigate Next? — Impact on Margin Lending (Lombard Loans)
+## Slide 6: What to Investigate Next? — Impact of Faster Crashes on Manual Position Liquidations
 
 ### On-Slide Visual Content
-* **Proposed Research Question:**
-  > *"How do equity correlation breakdown (Task 2) and FX volatility (Task 1) compound to threaten collateral coverage in FlatexDEGIRO's retail margin lending (Lombard Loans) during market distress?"*
-* **The Hidden Retail Client Risk:**
-  * Leveraged clients combine US tech (USD) with European blue-chips (EUR), assuming their collateral pool is diversified.
-  * When $VIX \ge 30$, cross-correlation exceeds $0.93$, triggering simultaneous collateral depreciation and cascading margin calls.
-* **FX Gap Risk in Liquidation Close-Outs:**
-  * Liquidating USD equities to cover EUR debt exposes FlatexDEGIRO treasury to sudden currency gap risk during market illiquidity.
-* **Proposed Methodological Roadmap:**
-  * Develop a **Joint Stress Testing engine (Equity + FX) using Student-$t$ / Clayton Copulas** to calibrate **Dynamic Collateral Haircuts** linked in real time to our Risk Traffic Light.
+* **1. Faster & Simultaneous Market Drops:**
+  * Our 18-year data proves market sell-offs now unfold **twice as fast** (NASDAQ peak-to-trough shrank from $57\text{d}$ to $28\text{d}$; full cycle $157\text{d} \rightarrow 75\text{d}$, S&P 500 $112\text{d} \rightarrow 72\text{d}$) while correlation surges **$+43.8\%$** in distress ($VIX \ge 30$).
+  * Crashes now trigger **simultaneous waves of margin breaches** in half the time.
+* **2. The Blind Spot — Manual Liquidation Bottlenecks:**
+  * Standard risk models assume frictionless position close-outs, ignoring operational capacity.
+  * Because forced liquidations are executed **manually**, a sudden, highly correlated sell-off creates an **execution queue bottleneck**: prices drop faster than operators can manually close accounts.
+* **3. Next Investigation — Quantifying Manual Close-Out Latency Risk:**
+  * Cross-reference historical crash velocity with internal execution logs to measure **queueing delay during $VIX \ge 30$ spikes**: quantifying how manual execution lag increases **unsecured negative account balances (*bad debt*)** and **FX conversion slippage** (USD collateral vs. EUR debt).
+* **4. Strategic Recommendation — Automating Close-Out Execution:**
+  * Extend the objective **Trigger Rate ($S_{\text{VaR}}$)** and **TWAP** logic from Task 1b to margin operations: replacing manual close-out queues with **automated, rule-based liquidation triggers** before a fast market shock outpaces human execution capacity.
 
 ### Speaker Script (2 min)
-> *"To conclude, addressing the question of what I would investigate next: I propose linking the quantitative findings of all three tasks directly into the core revenue engine of FlatexDEGIRO: our retail margin lending book (Lombard Loans).
+> *"To conclude, addressing what we should investigate next: our 18-year analysis uncovered a structural shift with direct operational consequences for FlatexDEGIRO. Market sell-offs and recoveries now unfold more than twice as fast as they did a decade ago—on the NASDAQ, peak-to-trough drops shrank from 57 days to 28 days, and the full cycle fell from 157 to 75 days.
 >
-> Leveraged retail investors often hold US tech in dollars alongside European blue-chips in euros, assuming their collateral pool is balanced. Our research proved that when VIX surpasses 30, cross-asset correlations rise above 93%, causing the entire collateral base to collapse simultaneously and triggering widespread margin calls.
+> Traditional risk models assume positions in breach are closed instantaneously, ignoring operational execution capacity. In practice, when forced liquidations are handled manually, a 2x faster sell-off combined with a +43.8% surge in correlation means hundreds of accounts breach margin simultaneously. The market drops faster than the team can manually review and close positions.
 >
-> When the brokerage must liquidate USD equities to cover EUR debt, treasury immediately absorbs the FX gap risk modeled in Task 1. My technical proposal is to engineer a joint Equity and FX Stress Testing framework using lower-tail copulas, enabling FlatexDEGIRO to dynamically adjust collateral haircuts based on the prevailing volatility regime and optimize treasury hedging. Thank you very much, I look forward to your questions."*
+> My proposal for what to investigate next is to quantify Manual Close-Out Latency Risk: crossing our market crash-velocity metrics with internal execution logs to measure how each hour of manual queue delay during VIX >= 30 increases negative balance bad debt and FX slippage, building the business case to transition from manual liquidations to automated, rule-based close-out triggers. Thank you very much, I look forward to your questions."*
