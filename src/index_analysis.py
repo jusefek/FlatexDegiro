@@ -205,7 +205,7 @@ class IndexRiskAnalyzer:
             ("Intra-Europe Core", eu_core, None),
             ("US vs Europe Core", us_tickers, eu_core),
             ("Intra-Asia", asia, None),
-            ("US vs Asia (Contemporáneo)", us_tickers, asia),
+            ("US vs Asia (Contemporaneous)", us_tickers, asia),
             ("Europe Core vs Asia", eu_core, asia),
             ("Europe Core vs Eastern Europe", eu_core, eu_east),
             ("Intra-Eastern Europe", eu_east, None),
