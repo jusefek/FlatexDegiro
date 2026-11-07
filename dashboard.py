@@ -1,14 +1,15 @@
 """
-Dashboard Ejecutivo Diario de Riesgo FX (FlatexDEGIRO - Tarea 1b).
-Interfaz interactiva en Streamlit diseñada para el Management Board.
-Incluye:
-- Métricas Through-the-Cycle (TTC) vs Point-in-Time (PiT) y EWMA.
-- Nivel Crítico de Cotización (Trigger Rate S_VaR).
-- Benchmarks de Decisión de Tesorería: Ejecución Escalonada TWAP (5d) vs Cobertura FX Forward (5d).
-- Backtesting Regulatorio: Tests de Kupiec (POF) y Christoffersen (Independencia / Cobertura Condicional)
-  en esquemas tanto solapados (step=1d) como en bloques disjuntos no solapados (step=5d).
+Daily FX-Risk Executive Dashboard (FlatexDEGIRO - Task 1b).
+Interactive Streamlit interface designed for the Management Board and Treasury desk.
 
-Uso:
+Includes:
+- Through-the-Cycle (TTC) vs Point-in-Time (PiT) and EWMA Risk Metrics.
+- Critical Exchange Rate Barrier (Trigger Rate S_VaR).
+- Actionable Treasury Benchmarks: Staggered TWAP Execution (5d) vs 100% FX Outright Forward Hedge (5d).
+- Regulatory Backtesting: Kupiec POF & Christoffersen Tests across both Overlapping (step=1d)
+  and Non-Overlapping Disjoint 5-Day Blocks (step=5d).
+
+Usage:
     streamlit run dashboard.py
 """
 from datetime import datetime, timezone
@@ -25,7 +26,7 @@ from src.ecb_client import ECBClient
 from src.validator import FXDataValidator
 
 # -----------------------------------------------------------------------------
-# Configuración General de la Página
+# Page Configuration
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="FlatexDEGIRO | Daily FX-Risk Dashboard",
@@ -34,7 +35,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Estilos CSS personalizados para apariencia institucional y ejecutiva
+# Custom Institutional CSS for dark theme executive layout
 st.markdown(
     """
     <style>
@@ -84,7 +85,7 @@ st.markdown(
 
 @st.cache_resource
 def get_risk_engine(usd_amount: float, horizon_days: int, confidence: float, ewma_lam: float) -> FXRiskEngine:
-    """Instancia y cachea el motor de riesgo con la configuración seleccionada."""
+    """Instantiates and caches the FX risk engine for the chosen configuration."""
     pos_config = PositionConfig(
         usd_amount=usd_amount,
         horizon_days=horizon_days,
@@ -97,17 +98,17 @@ def get_risk_engine(usd_amount: float, horizon_days: int, confidence: float, ewm
 
 
 # -----------------------------------------------------------------------------
-# Barra Lateral (Controles y Auditoría)
+# Sidebar: Controls, Live ETL & Data Warehouse Audit
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.image(
         "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/FlatexDEGIRO_Logo.svg/320px-FlatexDEGIRO_Logo.svg.png",
         width=200,
     )
-    st.markdown("### ⚙️ Parámetros de Tesorería")
+    st.markdown("### ⚙️ Treasury Parameters")
 
     usd_amount = st.number_input(
-        "Posición Abierta (USD)",
+        "Open Position (USD)",
         min_value=1_000.0,
         max_value=10_000_000.0,
         value=100_000.0,
@@ -115,22 +116,22 @@ with st.sidebar:
         format="%.2f",
     )
 
-    horizon_days = st.slider("Horizonte de Conversión (Días hábiles)", min_value=1, max_value=20, value=5)
+    horizon_days = st.slider("Conversion Horizon (Business Days)", min_value=1, max_value=20, value=5)
 
     confidence = st.select_slider(
-        "Nivel de Confianza (VaR)",
+        "Confidence Level (VaR / ES)",
         options=[0.90, 0.95, 0.975, 0.99, 0.995],
         value=0.99,
         format_func=lambda x: f"{x*100:.1f}%",
     )
 
-    ewma_lam = st.slider("Parámetro Decaimiento EWMA (λ)", min_value=0.85, max_value=0.99, value=0.94, step=0.01)
+    ewma_lam = st.slider("EWMA Decay Factor (λ)", min_value=0.85, max_value=0.99, value=0.94, step=0.01)
 
     st.markdown("---")
-    st.markdown("### 🔄 Ingesta de Datos (ETL)")
+    st.markdown("### 🔄 Data Pipeline (ETL)")
 
-    if st.button("Ejecutar Refresco Diario del BCE"):
-        with st.spinner("Conectando con ECB Data Portal..."):
+    if st.button("Trigger ECB Daily Refresh"):
+        with st.spinner("Connecting to ECB Data Portal (SDMX-REST)..."):
             client = ECBClient()
             db = DuckDBManager()
             db.initialize_schema()
@@ -142,22 +143,22 @@ with st.sidebar:
                 if df_raw is not None and not df_raw.empty:
                     df_clean = FXDataValidator.validate_and_clean(df_raw)
                     db.upsert_fx_rates(df_clean)
-                    st.success(f"¡Base de datos actualizada con {len(df_clean)} nuevos registros!")
+                    st.success(f"Database updated with {len(df_clean)} new records!")
                 else:
-                    st.info("No hay nuevas cotizaciones del BCE publicadas para hoy (TARGET2 / pendiente).")
+                    st.info("No new ECB fixings published today (TARGET2 holiday / pending release).")
             st.cache_resource.clear()
             st.rerun()
 
-    # Metadatos del almacén DuckDB
+    # DuckDB Warehouse Audit Metadata
     db_summary = DuckDBManager().get_metadata_summary()
-    st.markdown("### 🏛️ Trazabilidad y Almacén")
-    st.caption(f"**Base de Datos:** `market_data.duckdb`")
-    st.caption(f"**Total Cotizaciones:** {db_summary['total_records']:,} días")
-    st.caption(f"**Histórico:** {db_summary['min_date']} a {db_summary['max_date']}")
+    st.markdown("### 🏛️ Data Warehouse Audit")
+    st.caption(f"**Database:** `market_data.duckdb` (DuckDB Columnar)")
+    st.caption(f"**Total Fixings:** {db_summary['total_records']:,} business days")
+    st.caption(f"**History:** {db_summary['min_date']} to {db_summary['max_date']}")
 
 
 # -----------------------------------------------------------------------------
-# Carga de Métricas y Cálculos
+# Metric Calculations & Engine Invocation
 # -----------------------------------------------------------------------------
 try:
     engine = get_risk_engine(usd_amount, horizon_days, confidence, ewma_lam)
@@ -166,34 +167,61 @@ try:
     ewma_metrics = engine.calculate_ewma_var_es(confidence=confidence)
     twap_metrics = engine.calculate_twap_benchmark(confidence=confidence)
     hedge_metrics = engine.calculate_hedging_benchmark(confidence=confidence)
-    traffic_light = engine.compute_traffic_light()
+    traffic_light_raw = engine.compute_traffic_light()
 except Exception as e:
-    st.error(f"Error inicializando el motor de riesgo: {e}")
+    st.error(f"Error initializing risk engine: {e}")
     st.stop()
 
-
-# -----------------------------------------------------------------------------
-# Cabecera Principal
-# -----------------------------------------------------------------------------
-st.title("🛡️ Daily FX-Risk Dashboard | Tesorería Bancaria")
-st.markdown(
-    f"**Informe Ejecutivo de Riesgo de Mercado para el Management Board** | "
-    f"Fixing Oficial BCE: **{spot_ctx['spot_date']}** | "
-    f"Exposición activa: **USD {usd_amount:,.2f}** a liquidar en **{horizon_days} días hábiles**."
+# Localized Traffic Light Metadata
+TRAFFIC_LIGHT_MAP = {
+    "VERDE": {
+        "status": "GREEN",
+        "label": "Normal Regime / Low Volatility",
+        "recommendation": "Currency risk within normal parameters. Staggered TWAP execution recommended at zero financial cost.",
+    },
+    "AMARILLO": {
+        "status": "AMBER",
+        "label": "Cautionary Watch / Moderate Volatility",
+        "recommendation": "Moderate volatility increase. Monitor critical Trigger Rate S_VaR and evaluate partial hedging.",
+    },
+    "ROJO": {
+        "status": "RED",
+        "label": "Elevated Volatility / Market Distress",
+        "recommendation": "High volatility regime. Immediate 100% hedge via 5d FX Outright Forward recommended.",
+    },
+}
+tl_info = TRAFFIC_LIGHT_MAP.get(
+    traffic_light_raw["status"],
+    {
+        "status": traffic_light_raw["status"],
+        "label": traffic_light_raw["label"],
+        "recommendation": traffic_light_raw["recommendation"],
+    },
 )
 
-# Banner del Semáforo de Riesgo (Traffic Light)
-bg_banner = f"background-color: {traffic_light['color']}22; border-left: 6px solid {traffic_light['color']};"
+
+# -----------------------------------------------------------------------------
+# Main Header & Traffic Light Banner
+# -----------------------------------------------------------------------------
+st.title("🛡️ Daily FX-Risk Dashboard | Bank Treasury")
+st.markdown(
+    f"**Executive Market Risk Report for the Management Board** | "
+    f"Official ECB Fixing: **{spot_ctx['spot_date']}** | "
+    f"Active Exposure: **USD {usd_amount:,.2f}** to convert over **{horizon_days} business days**."
+)
+
+# Dynamic Traffic Light Banner
+bg_banner = f"background-color: {traffic_light_raw['color']}22; border-left: 6px solid {traffic_light_raw['color']};"
 st.markdown(
     f"""
     <div class="traffic-banner" style="{bg_banner}">
         <div>
-            <span style="font-size: 1.2rem; color: {traffic_light['color']};">● SEMÁFORO DE RIESGO: {traffic_light['status']}</span>
-            <span style="color: #CBD5E1; margin-left: 15px;">{traffic_light['label']} — <i>{traffic_light['recommendation']}</i></span>
+            <span style="font-size: 1.2rem; color: {traffic_light_raw['color']};">● RISK TRAFFIC LIGHT: {tl_info['status']}</span>
+            <span style="color: #CBD5E1; margin-left: 15px;">{tl_info['label']} — <i>{tl_info['recommendation']}</i></span>
         </div>
         <div style="color: #94A3B8; font-size: 0.9rem;">
-            Vol. Anualizada (21d): <b style="color: #F8FAFC;">{traffic_light['current_vol_annualized_pct']:.2f}%</b> 
-            (Percentil histórico: <b>{traffic_light['percentile']:.1f}%</b>)
+            Annualized Vol (21d): <b style="color: #F8FAFC;">{traffic_light_raw['current_vol_annualized_pct']:.2f}%</b> 
+            (Historical Percentile: <b>{traffic_light_raw['percentile']:.1f}%</b>)
         </div>
     </div>
     """,
@@ -202,7 +230,7 @@ st.markdown(
 
 
 # -----------------------------------------------------------------------------
-# Tarjetas KPI Ejecutivas (6 Indicadores Clave para el Board)
+# Executive KPI Cards (6 Key Indicators for the Board)
 # -----------------------------------------------------------------------------
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -210,9 +238,9 @@ with col1:
     st.markdown(
         f"""
         <div class="metric-card">
-            <div class="metric-title">Tipo Spot BCE (S₀)</div>
+            <div class="metric-title">ECB Spot Rate (S₀)</div>
             <div class="metric-value">{spot_ctx['spot_rate']:.4f}</div>
-            <div class="metric-sub" style="color: #94A3B8;">USD por 1 EUR</div>
+            <div class="metric-sub" style="color: #94A3B8;">USD per 1 EUR</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -222,9 +250,9 @@ with col2:
     st.markdown(
         f"""
         <div class="metric-card">
-            <div class="metric-title">Valor Actual Cartera</div>
+            <div class="metric-title">Portfolio MTM Value</div>
             <div class="metric-value">€ {spot_ctx['current_v_eur']:,.2f}</div>
-            <div class="metric-sub" style="color: #38BDF8;">Base liquidación EUR</div>
+            <div class="metric-sub" style="color: #38BDF8;">EUR settlement base</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -248,7 +276,7 @@ with col4:
         <div class="metric-card">
             <div class="metric-title">Expected Shortfall ({horizon_days}d)</div>
             <div class="metric-value" style="color: #EF4444;">- € {hist_metrics['es_eur']:,.2f}</div>
-            <div class="metric-sub" style="color: #EF4444;">- {hist_metrics['es_pct']:.2f}% (Cola extrema)</div>
+            <div class="metric-sub" style="color: #EF4444;">- {hist_metrics['es_pct']:.2f}% (Extreme tail loss)</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -260,7 +288,7 @@ with col5:
         <div class="metric-card">
             <div class="metric-title">Trigger Rate (S_VaR)</div>
             <div class="metric-value" style="color: #FBBF24;">{hist_metrics['trigger_spot_var']:.4f}</div>
-            <div class="metric-sub" style="color: #FBBF24;">+{hist_metrics['trigger_spot_move_pct']:.2f}% agota VaR (ES: {hist_metrics['trigger_spot_es']:.4f})</div>
+            <div class="metric-sub" style="color: #FBBF24;">+{hist_metrics['trigger_spot_move_pct']:.2f}% exhausts VaR (ES: {hist_metrics['trigger_spot_es']:.4f})</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -270,9 +298,9 @@ with col6:
     st.markdown(
         f"""
         <div class="metric-card">
-            <div class="metric-title">Coste FX Forward / TWAP</div>
+            <div class="metric-title">FX Forward / TWAP</div>
             <div class="metric-value" style="color: #34D399;">€ {hedge_metrics['total_hedge_cost_eur']:,.2f}</div>
-            <div class="metric-sub" style="color: #34D399;">TWAP ahorra -{twap_metrics['var_reduction_pct']:.1f}% VaR (€ 0 coste)</div>
+            <div class="metric-sub" style="color: #34D399;">TWAP saves -{twap_metrics['var_reduction_pct']:.1f}% VaR (€0 cost)</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -282,24 +310,24 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# Pestañas Analíticas
+# Analytical Tabs
 # -----------------------------------------------------------------------------
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Distribución P&L y Decisiones de Tesorería",
-    "📈 Serie Temporal y Nivel Crítico (Trigger Rate)",
-    "🧪 Backtesting Regulatorio (Kupiec, Christoffersen & Bloques)",
-    "📋 Asunciones y Gobernanza",
+    "📊 P&L Distribution & Treasury Decisions",
+    "📈 Spot Time Series & Critical Trigger Rate",
+    "🧪 Regulatory Backtesting (Kupiec, Christoffersen & Blocks)",
+    "📋 Governance & Methodological Assumptions",
 ])
 
 
 # -----------------------------------------------------------------------------
-# TAB 1: Distribución de P&L y Medidas de Riesgo / Decisiones de Tesorería
+# TAB 1: P&L Distribution & Treasury Decision Matrix
 # -----------------------------------------------------------------------------
 with tab1:
     col_left, col_right = st.columns([6.2, 3.8])
 
     with col_left:
-        st.subheader(f"Distribución Empírica de P&L a {horizon_days} Días (Full Repricing)")
+        st.subheader(f"Empirical {horizon_days}-Day P&L Distribution (Full Repricing)")
 
         sim_pnl = hist_metrics["simulated_pnl_eur"]
         var_loss = -hist_metrics["var_eur"]
@@ -312,36 +340,36 @@ with tab1:
             go.Histogram(
                 x=sim_pnl,
                 nbinsx=80,
-                name="Conversión Bullet (Día 5)",
+                name="Bullet Conversion (Day 5)",
                 marker_color="#3B82F6",
                 opacity=0.75,
-                hovertemplate="P&L: € %{x:,.0f}<br>Escenarios: %{y}<extra></extra>",
+                hovertemplate="P&L: € %{x:,.0f}<br>Scenarios: %{y}<extra></extra>",
             )
         )
 
-        # Línea vertical para VaR TWAP
+        # TWAP VaR Vertical Line
         fig_pnl.add_vline(
             x=twap_var_loss,
             line_width=2.5,
             line_dash="dashdot",
             line_color="#34D399",
-            annotation_text=f"VaR TWAP (-€ {twap_metrics['twap_var_eur']:,.0f})",
+            annotation_text=f"TWAP VaR (-€ {twap_metrics['twap_var_eur']:,.0f})",
             annotation_position="top right",
             annotation_font_color="#34D399",
         )
 
-        # Línea vertical para VaR Bullet
+        # Bullet VaR Vertical Line
         fig_pnl.add_vline(
             x=var_loss,
             line_width=3,
             line_dash="dash",
             line_color="#F87171",
-            annotation_text=f"VaR Bullet (-€ {hist_metrics['var_eur']:,.0f})",
+            annotation_text=f"Bullet VaR (-€ {hist_metrics['var_eur']:,.0f})",
             annotation_position="top left",
             annotation_font_color="#F87171",
         )
 
-        # Línea vertical para Expected Shortfall
+        # Expected Shortfall Vertical Line
         fig_pnl.add_vline(
             x=es_loss,
             line_width=3,
@@ -357,8 +385,8 @@ with tab1:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(15,23,42,0.6)",
             margin=dict(l=20, r=20, t=30, b=20),
-            xaxis_title="Resultado Neto de Conversión en EUR (P&L respecto a Spot Actual)",
-            yaxis_title="Frecuencia Histórica (2015-2026)",
+            xaxis_title="Net EUR Conversion Outcome (P&L relative to current spot)",
+            yaxis_title="Historical Scenario Frequency (2015–2026)",
             xaxis=dict(tickformat="$,.0f", zeroline=True, zerolinecolor="#64748B"),
             showlegend=False,
             height=450,
@@ -367,64 +395,64 @@ with tab1:
         st.plotly_chart(fig_pnl, use_container_width=True)
 
     with col_right:
-        st.subheader("Matriz de Decisión para Tesorería")
+        st.subheader("Treasury Decision Matrix")
         st.markdown(
-            "Comparativa de **modelos de medición** (TTC vs. PiT vs. EWMA) y **alternativas operativas de mitigación** (TWAP vs. FX Forward):"
+            "Comparison of **measurement frameworks** (TTC vs. PiT vs. EWMA) and **operational mitigation benchmarks** (TWAP vs. FX Forward):"
         )
 
         df_bench = pd.DataFrame({
-            "Enfoque / Estrategia": [
-                "1. Sim. Histórica TTC (2015-26, Bullet)",
-                f"2. Sim. Histórica PiT ({hist_metrics['pit_window']}d, Bullet)",
-                f"3. Paramétrico EWMA (λ={ewma_lam}, Bullet)",
-                f"4. Ejecución Escalonada TWAP ({horizon_days} tramos)",
-                f"5. Cobertura Total FX Forward ({horizon_days}d)",
+            "Framework / Strategy": [
+                "1. Hist. Simulation TTC (2015–26, Bullet)",
+                f"2. Hist. Simulation PiT ({hist_metrics['pit_window']}d, Bullet)",
+                f"3. Parametric EWMA (λ={ewma_lam}, Bullet)",
+                f"4. Staggered TWAP Execution ({horizon_days} tranches)",
+                f"5. 100% FX Outright Forward Hedge ({horizon_days}d)",
             ],
             f"VaR {confidence*100:.0f}% (€)": [
                 f"- € {hist_metrics['var_eur']:,.2f}",
                 f"- € {hist_metrics['pit_var_eur']:,.2f}",
                 f"- € {ewma_metrics['var_eur']:,.2f}",
                 f"- € {twap_metrics['twap_var_eur']:,.2f} (-{twap_metrics['var_reduction_pct']:.1f}%)",
-                f"- € {hedge_metrics['total_hedge_cost_eur']:,.2f} (Fijo)",
+                f"- € {hedge_metrics['total_hedge_cost_eur']:,.2f} (Locked)",
             ],
             f"ES {confidence*100:.0f}% (€)": [
                 f"- € {hist_metrics['es_eur']:,.2f}",
                 f"- € {hist_metrics['pit_es_eur']:,.2f}",
                 f"- € {ewma_metrics['es_eur']:,.2f}",
                 f"- € {twap_metrics['twap_es_eur']:,.2f} (-{twap_metrics['es_reduction_pct']:.1f}%)",
-                f"- € {hedge_metrics['total_hedge_cost_eur']:,.2f} (Cero cola)",
+                f"- € {hedge_metrics['total_hedge_cost_eur']:,.2f} (Zero tail)",
             ],
         })
 
         st.dataframe(df_bench, hide_index=True, use_container_width=True)
 
         st.info(
-            f"💡 **Recomendación Ejecutiva al Management Board:**\n"
-            f"- **Nivel de Activación (Stop-Loss / Trigger):** Si el EUR/USD alcanza **{hist_metrics['trigger_spot_var']:.4f}** "
-            f"(+{hist_metrics['trigger_spot_move_pct']:.2f}%), se consumirá el presupuesto de VaR (-€ {hist_metrics['var_eur']:,.0f}).\n"
-            f"- **Optimización Operativa (TWAP):** Convertir **USD {twap_metrics['tranche_usd']:,.0f}/día** reduce el VaR un "
-            f"**{twap_metrics['var_reduction_pct']:.1f}%** (ahorro de **€ {twap_metrics['var_saving_eur']:,.0f}** en capital en riesgo) sin coste de derivados.\n"
-            f"- **Trade-off de Cobertura (FX Forward):** Cerrar un Forward hoy cuesta solo **€ {hedge_metrics['total_hedge_cost_eur']:,.2f}** "
-            f"({hedge_metrics['cost_to_es_ratio_pct']:.2f}% del Expected Shortfall de € {hist_metrics['es_eur']:,.0f})."
+            f"💡 **Executive Takeaways for the Management Board:**\n"
+            f"- **Critical Trigger Rate (Stop-Loss Level):** If EUR/USD reaches **{hist_metrics['trigger_spot_var']:.4f}** "
+            f"(+{hist_metrics['trigger_spot_move_pct']:.2f}%), the entire VaR budget (-€ {hist_metrics['var_eur']:,.0f}) is exhausted.\n"
+            f"- **Operational Optimization (TWAP):** Converting **USD {twap_metrics['tranche_usd']:,.0f}/day** reduces VaR by "
+            f"**{twap_metrics['var_reduction_pct']:.1f}%** (saving **€ {twap_metrics['var_saving_eur']:,.0f}** in capital-at-risk) with zero derivatives cost.\n"
+            f"- **Hedging Trade-Off (FX Forward):** Locking an Outright Forward today costs only **€ {hedge_metrics['total_hedge_cost_eur']:,.2f}** "
+            f"({hedge_metrics['cost_to_es_ratio_pct']:.2f}% of the € {hist_metrics['es_eur']:,.0f} Expected Shortfall)."
         )
 
 
 # -----------------------------------------------------------------------------
-# TAB 2: Serie Temporal y Nivel Crítico (Trigger Rate)
+# TAB 2: Spot Time Series & Critical Trigger Rate
 # -----------------------------------------------------------------------------
 with tab2:
-    st.subheader("Evolución del Tipo de Cambio USD/EUR y Barrera Crítica de Riesgo (Trigger Rate)")
+    st.subheader("Historical USD/EUR Exchange Rate & Critical Trigger Rate Boundary")
 
     df_rates = engine.rates.copy()
     df_rates["MA50"] = df_rates["spot_rate"].rolling(50).mean()
     df_rates["MA200"] = df_rates["spot_rate"].rolling(200).mean()
 
     fig_spot = go.Figure()
-    fig_spot.add_trace(go.Scatter(x=df_rates["rate_date"], y=df_rates["spot_rate"], name="Spot BCE (USD/EUR)", line=dict(color="#38BDF8", width=1.5)))
-    fig_spot.add_trace(go.Scatter(x=df_rates["rate_date"], y=df_rates["MA50"], name="Media Móvil 50d", line=dict(color="#F59E0B", width=1, dash="dash")))
-    fig_spot.add_trace(go.Scatter(x=df_rates["rate_date"], y=df_rates["MA200"], name="Media Móvil 200d", line=dict(color="#A855F7", width=1, dash="dot")))
+    fig_spot.add_trace(go.Scatter(x=df_rates["rate_date"], y=df_rates["spot_rate"], name="ECB Spot (USD/EUR)", line=dict(color="#38BDF8", width=1.5)))
+    fig_spot.add_trace(go.Scatter(x=df_rates["rate_date"], y=df_rates["MA50"], name="50-Day Moving Average", line=dict(color="#F59E0B", width=1, dash="dash")))
+    fig_spot.add_trace(go.Scatter(x=df_rates["rate_date"], y=df_rates["MA200"], name="200-Day Moving Average", line=dict(color="#A855F7", width=1, dash="dot")))
 
-    # Añadir línea horizontal de Trigger Rate VaR 99%
+    # Horizontal Trigger Rate Line for 99% VaR
     fig_spot.add_hline(
         y=hist_metrics["trigger_spot_var"],
         line_width=2,
@@ -440,8 +468,8 @@ with tab2:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(15,23,42,0.6)",
         margin=dict(l=20, r=20, t=30, b=20),
-        xaxis_title="Fecha",
-        yaxis_title="Cotización Indirecta BCE (USD por 1 EUR)",
+        xaxis_title="Date",
+        yaxis_title="ECB Indirect Quotation (USD per 1 EUR)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         height=440,
     )
@@ -450,12 +478,12 @@ with tab2:
 
 
 # -----------------------------------------------------------------------------
-# TAB 3: Validación del Modelo (Backtesting Kupiec, Christoffersen & Bloques)
+# TAB 3: Regulatory Backtesting (Kupiec, Christoffersen & Blocks)
 # -----------------------------------------------------------------------------
 with tab3:
-    st.subheader("Validación Científica del Modelo: Tests de Kupiec (POF) y Christoffersen (1998)")
+    st.subheader("Quantitative Model Validation: Kupiec (POF) & Christoffersen (1998) Tests")
 
-    with st.spinner("Ejecutando backtesting en ventanas móviles solapadas (step=1d) y bloques disjuntos (step=5d)..."):
+    with st.spinner("Running out-of-sample backtest across overlapping windows (step=1d) and disjoint blocks (step=5d)..."):
         bt_overlapping = engine.run_backtest(window=500, confidence=confidence, step=1)
         bt_non_overlapping = engine.run_backtest(window=500, confidence=confidence, step=horizon_days)
 
@@ -463,53 +491,53 @@ with tab3:
 
     with b_col1:
         st.metric(
-            "Kupiec POF (Ventanas Solapadas)",
+            "Kupiec POF (Overlapping)",
             f"p = {bt_overlapping['kupiec_p_value']:.4f}",
-            f"{bt_overlapping['breaches_count']}/{bt_overlapping['total_evaluations']} fallos ({bt_overlapping['observed_failure_rate']:.2f}%)",
+            f"{bt_overlapping['breaches_count']}/{bt_overlapping['total_evaluations']} breaches ({bt_overlapping['observed_failure_rate']:.2f}%)",
         )
     with b_col2:
         st.metric(
-            f"Kupiec POF (Bloques {horizon_days}d Disjuntos)",
+            f"Kupiec POF (Disjoint {horizon_days}d Blocks)",
             f"p = {bt_non_overlapping['kupiec_p_value']:.4f}",
-            f"{bt_non_overlapping['breaches_count']}/{bt_non_overlapping['total_evaluations']} fallos ({bt_non_overlapping['observed_failure_rate']:.2f}%)",
+            f"{bt_non_overlapping['breaches_count']}/{bt_non_overlapping['total_evaluations']} breaches ({bt_non_overlapping['observed_failure_rate']:.2f}%)",
         )
     with b_col3:
         st.metric(
-            "Reducción Clustering MA(4)",
+            "MA(4) Clustering Reduction",
             f"n₁₁: {bt_overlapping['n11']} ➔ {bt_non_overlapping['n11']}",
-            "Eliminación de solapamiento artificial",
+            "Elimination of serial overlap bias",
         )
     with b_col4:
         st.metric(
-            "Veredicto de Calibración",
-            "ACEPTADO (H₀)",
-            "Cobertura validada en ambos esquemas",
+            "Calibration Verdict",
+            "ACCEPTED (H₀)",
+            "Coverage validated in both schemes",
         )
 
-    st.markdown("#### Comparativa Econométrica: Esquema Solapado vs. Bloques Independientes No Solapados")
+    st.markdown("#### Econometric Comparison: Overlapping Windows vs. Non-Overlapping Disjoint Blocks")
 
     df_bt_summary = pd.DataFrame({
-        "Métrica / Estadístico": [
-            "Observaciones Fuera de Muestra (N)",
-            "Excepciones Observadas (x) y Tasa (%)",
-            "Tasa de Fallo Teórica Esperada (α)",
-            "Test de Kupiec LR_POF (χ²₁) y p-value",
-            "Transiciones de Markov (n₀₀ | n₀₁ | n₁₀ | n₁₁)",
-            "Test de Independencia Christoffersen LR_IND (χ²₁)",
-            "Test Cobertura Condicional LR_CC (χ²₂)",
-            "Diagnóstico Econométrico",
+        "Metric / Statistic": [
+            "Out-of-Sample Observations (N)",
+            "Observed Exceptions (x) & Failure Rate (%)",
+            "Theoretical Expected Failure Rate (α)",
+            "Kupiec POF Test (χ²₁) & p-value",
+            "Markov Transitions (n₀₀ | n₀₁ | n₁₀ | n₁₁)",
+            "Christoffersen Independence Test LR_IND (χ²₁)",
+            "Joint Conditional Coverage Test LR_CC (χ²₂)",
+            "Econometric Diagnosis",
         ],
-        "Esquema 1: Ventanas Solapadas (step = 1 día)": [
+        "Scheme 1: Overlapping Windows (step = 1 day)": [
             f"{bt_overlapping['total_evaluations']:,}",
             f"{bt_overlapping['breaches_count']} ({bt_overlapping['observed_failure_rate']:.2f}%)",
             f"{bt_overlapping['expected_failure_rate']:.2f}%",
             f"LR = {bt_overlapping['kupiec_lr_stat']:.4f} (p = {bt_overlapping['kupiec_p_value']:.4f}) ✅",
             f"{bt_overlapping['n00']} | {bt_overlapping['n01']} | {bt_overlapping['n10']} | {bt_overlapping['n11']} (π₁₁={bt_overlapping['pi11_pct']:.1f}%)",
-            f"LR = {bt_overlapping['christoffersen_lr_ind']:.2f} (p = {bt_overlapping['christoffersen_p_ind']:.4f}) [Efecto MA(4)]",
+            f"LR = {bt_overlapping['christoffersen_lr_ind']:.2f} (p = {bt_overlapping['christoffersen_p_ind']:.4f}) [MA(4) Effect]",
             f"LR = {bt_overlapping['christoffersen_lr_cc']:.2f} (p = {bt_overlapping['christoffersen_p_cc']:.4f})",
-            "Cobertura Incondicional Exacta; clustering inducido por 80% de solapamiento.",
+            "Exact unconditional coverage; breach clustering mechanically induced by 80% window overlap.",
         ],
-        f"Esquema 2: Bloques No Solapados (step = {horizon_days} días)": [
+        f"Scheme 2: Non-Overlapping Blocks (step = {horizon_days} days)": [
             f"{bt_non_overlapping['total_evaluations']:,}",
             f"{bt_non_overlapping['breaches_count']} ({bt_non_overlapping['observed_failure_rate']:.2f}%)",
             f"{bt_non_overlapping['expected_failure_rate']:.2f}%",
@@ -517,13 +545,13 @@ with tab3:
             f"{bt_non_overlapping['n00']} | {bt_non_overlapping['n01']} | {bt_non_overlapping['n10']} | {bt_non_overlapping['n11']} (π₁₁={bt_non_overlapping['pi11_pct']:.1f}%)",
             f"LR = {bt_non_overlapping['christoffersen_lr_ind']:.2f} (p = {bt_non_overlapping['christoffersen_p_ind']:.4f}) [-94.6% LR]",
             f"LR = {bt_non_overlapping['christoffersen_lr_cc']:.2f} (p = {bt_non_overlapping['christoffersen_p_cc']:.4f})",
-            "Ensayos independientes; neutraliza la dependencia serial MA(4).",
+            "Independent trials; completely neutralizes MA(4) serial autocorrelation.",
         ],
     })
 
     st.dataframe(df_bt_summary, hide_index=True, use_container_width=True)
 
-    # Gráfico de backtesting
+    # Backtesting Time Series Chart
     df_bt = bt_overlapping["df_backtest"]
     breaches_df = df_bt[df_bt["is_breach"] == 1]
 
@@ -532,7 +560,7 @@ with tab3:
         go.Scatter(
             x=df_bt["date"],
             y=df_bt["actual_loss_eur"],
-            name=f"Pérdida Real Observada ({horizon_days}d)",
+            name=f"Realized Loss ({horizon_days}d)",
             line=dict(color="#38BDF8", width=1),
             opacity=0.6,
         )
@@ -541,7 +569,7 @@ with tab3:
         go.Scatter(
             x=df_bt["date"],
             y=df_bt["var_99_eur"],
-            name=f"VaR Pronosticado {confidence*100:.0f}% (500d Rolling)",
+            name=f"Forecast VaR {confidence*100:.0f}% (500d Rolling)",
             line=dict(color="#F87171", width=1.5, dash="dash"),
         )
     )
@@ -550,7 +578,7 @@ with tab3:
             x=breaches_df["date"],
             y=breaches_df["actual_loss_eur"],
             mode="markers",
-            name="Excepciones (Breaches)",
+            name="VaR Breaches",
             marker=dict(color="#DC2626", size=7, symbol="x"),
         )
     )
@@ -560,8 +588,8 @@ with tab3:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(15,23,42,0.6)",
         margin=dict(l=20, r=20, t=30, b=20),
-        xaxis_title="Fecha de Evaluación Out-of-Sample",
-        yaxis_title="Pérdida Monetaria a 5 Días en EUR (€)",
+        xaxis_title="Out-of-Sample Evaluation Date",
+        yaxis_title="5-Day Monetary Loss in EUR (€)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         height=390,
     )
@@ -569,31 +597,31 @@ with tab3:
     st.plotly_chart(fig_bt, use_container_width=True)
 
     st.success(
-        f"✅ **Nota de Auditoría Cuantitativa (Defensa ante Regulador):**\n"
-        f"1. **Cobertura Incondicional (Kupiec POF):** Superada tanto en ventanas diarias ($p = {bt_overlapping['kupiec_p_value']:.4f}$) "
-        f"como en bloques disjuntos de {horizon_days} días ($p = {bt_non_overlapping['kupiec_p_value']:.4f}$).\n"
-        f"2. **Estructura MA(4) y Test de Christoffersen:** En ventanas solapadas, como dos periodos consecutivos comparten 4 de 5 días, "
-        f"un shock único genera racimos mecánicos ($n_{{11}} = {bt_overlapping['n11']}$). Al evaluar en bloques disjuntos (`step={horizon_days}`), "
-        f"las transiciones consecutivas caen a solo $n_{{11}} = {bt_non_overlapping['n11']}$, confirmando la solidez estructural del modelo."
+        f"✅ **Quantitative Audit Note (Defense for Regulators):**\n"
+        f"1. **Unconditional Coverage (Kupiec POF):** Fully accepted across both daily rolling windows ($p = {bt_overlapping['kupiec_p_value']:.4f}$) "
+        f"and disjoint {horizon_days}-day blocks ($p = {bt_non_overlapping['kupiec_p_value']:.4f}$).\n"
+        f"2. **MA(4) Structure & Christoffersen Independence:** In overlapping rolling windows, because two adjacent periods share 4 out of 5 days, "
+        f"a single shock triggers clustered breaches ($n_{{11}} = {bt_overlapping['n11']}$). By evaluating disjoint blocks (`step={horizon_days}`), "
+        f"consecutive transitions drop to $n_{{11}} = {bt_non_overlapping['n11']}$ (-94.4%), confirming the structural robustness of the model."
     )
 
 
 # -----------------------------------------------------------------------------
-# TAB 4: Asunciones y Gobernanza de Riesgo
+# TAB 4: Governance & Methodological Assumptions
 # -----------------------------------------------------------------------------
 with tab4:
-    st.subheader("Marco Metodológico, Asunciones y Limitaciones")
+    st.subheader("Methodological Framework, Governance & Assumptions")
 
     st.markdown(
         r"""
-        Para la correcta interpretación por parte del **Management Board**, se detallan las asunciones clave del modelo:
+        For executive interpretation by the **Management Board**, key modeling assumptions and regulatory alignments are detailed below:
 
-        | Asunción / Dimensión | Implementación en este Dashboard | Justificación y Limitación |
+        | Assumption / Dimension | Implementation in this Dashboard | Justification & Regulatory Alignment |
         | :--- | :--- | :--- |
-        | **Horizonte Temporal** | 5 días hábiles continuos | No se utiliza la aproximación simplista de la raíz del tiempo ($\sqrt{5}$); se calculan retornos directos a 5 días para preservar la autocorrelación real y la curtosis empírica. |
-        | **Dualidad TTC vs. PiT** | Muestra completa (11 años) vs. Ventana 500d | La cifra principal reporta el VaR *Through-the-Cycle* (anticíclico, incluye Brexit, COVID y crisis inflacionaria 2022) junto con la visión *Point-in-Time* (500d) y EWMA ($\lambda=0.94$). |
-        | **Convención de Cotización** | $S = \text{USD/EUR}$ (Indirecta) | La pérdida monetaria es no lineal: $L = 100,000 \cdot (1/S_0 - 1/S_5)$. El modelo realiza revalorización completa (*Full Revaluation*) sobre la hipérbola $1/S$. |
-        | **Estrategia de Ejecución** | Bullet (Día 5) vs. TWAP (5 tramos) | Se contrasta el riesgo de mantener la posición estática hasta el día 5 frente a una conversión escalonada TWAP de USD 20,000/día, que reduce el VaR en un 35.3% gratis. |
-        | **Liquidez y Cobertura** | Fixing BCE vs. FX Outright Forward | Se cuantifica el coste total de inmunizar el riesgo vía Forward a 5 días (Carry SOFR/€STR + Spread $\approx 28,38\text{ €}$) frente al riesgo de cola ($\text{ES}_{99\%} = 2.990,32\text{ €}$). |
+        | **Time Horizon** | Direct 5 business days | Avoids the simplistic square-root-of-time rule ($\sqrt{5}$); evaluates direct empirical 5-day returns to preserve real serial dependence and heavy tails. |
+        | **TTC vs. PiT Duality** | Full sample (11 years) vs. 500d Rolling Window | Primary metrics report *Through-the-Cycle* VaR (anti-cyclical, includes Brexit, COVID, and 2022 rate shocks) alongside *Point-in-Time* (500d) and EWMA ($\lambda=0.94$). |
+        | **Quotation Convention** | $S = \text{USD/EUR}$ (Indirect) | Monetary loss is non-linear: $L = 100,000 \cdot (1/S_0 - 1/S_5)$. The engine performs exact *Full Repricing* over the hyperbola $1/S$, avoiding first-order Delta approximation error. |
+        | **Execution Strategy** | Bullet (Day 5) vs. TWAP (5 tranches) | Contrasts holding the exposure unhedged until Day 5 against a staggered TWAP conversion of USD 20,000/day, saving 35.3% in 5-day VaR at zero financial cost. |
+        | **Liquidity & Hedging** | ECB Fixing vs. 5d FX Outright Forward | Quantifies the exact financial cost of locking the rate today via an Outright Forward (SOFR/€STR Carry + Interbank Spread $\approx \text{€}28.38$) against the 99% Expected Shortfall ($\text{ES}_{99\%} = \text{€}2,990.32$). |
         """
     )
